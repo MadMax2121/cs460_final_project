@@ -27,11 +27,19 @@
       import * as THREE from "three";
       import { OrbitControls } from "three/addons/controls/OrbitControls.js";
       import { GLTFLoader } from "three/addons/loaders/GLTFLoader.js";
+      import { OBJLoader } from "three/addons/loaders/OBJLoader.js";
+      import { MTLLoader } from "three/addons/loaders/MTLLoader.js";
+
 
       let scene, camera, renderer, controls, sphere;
       let car2, clock;
       let currentPath = 'meridian'; // Track which road the car is on
       let transitionPoint = false; // Track if we're at an intersection
+
+      let treeModel;
+      const EARTH_RADIUS = 1;
+      const placedPositions = []; // Track positions to avoid overlap
+
 
       window.onload = function () {
         init();
@@ -110,6 +118,9 @@
           sphere.add(car2);
         });
 
+        // Load Trees
+        loadTree();
+
         // Controls
         controls = new OrbitControls(camera, renderer.domElement);
         controls.enableDamping = true;
@@ -119,6 +130,106 @@
 
         window.addEventListener("resize", onWindowResize, false);
       }
+
+      function loadTree() {
+        const mtlLoader = new MTLLoader();
+        const objLoader = new OBJLoader();
+        const treeMtl = './trees/tree.mtl'; // Replace with actual path
+        const treeObj = './trees/tree.obj'; // Replace with actual path
+
+        mtlLoader.load(
+          treeMtl,
+          (materials) => {
+            materials.preload();
+            objLoader.setMaterials(materials);
+            objLoader.load(
+              treeObj,
+              (object) => {
+                treeModel = object;
+                treeModel.traverse((child) => {
+                  if (child.isMesh) {
+                    child.scale.set(0.002, 0.002, 0.002); // Scale the tree model
+                  }
+                });
+                placeTrees(); // Place trees after the model is loaded
+              },
+              undefined,
+              (error) => console.error(`Failed to load tree model: ${treeObj}`, error)
+            );
+          },
+          undefined,
+          (error) => console.error(`Failed to load tree material: ${treeMtl}`, error)
+        );
+      }
+
+      function placeTrees() {
+        for (let i = 0; i < 20; i++) {
+          addTree();
+        }
+      }
+
+      function addTree() {
+        if (!treeModel) return;
+      
+        let position;
+        do {
+          position = randomLatLonToXYZ();
+        } while (isPositionTooClose(position, 0.05));
+      
+        const tree = treeModel.clone();
+        const normal = position.clone().normalize();
+        const adjustedPosition = position.addScaledVector(normal, 0.01);
+      
+        tree.position.copy(adjustedPosition);
+        alignObjectToNormal(tree, normal);
+        scene.add(tree);
+        placedPositions.push(position);
+      }
+
+      function isPositionTooClose(position, minDistance) {
+        const equatorialPlane = new THREE.Vector3(0, 1, 0); // Y-axis (equator)
+        const meridianPlane = new THREE.Vector3(1, 0, 0);  // X-axis (meridian)
+
+        const equatorialDistance = Math.abs(position.dot(equatorialPlane));
+        const meridianDistance = Math.abs(position.dot(meridianPlane));
+
+        return (
+          placedPositions.some((placedPosition) => {
+            return position.distanceTo(placedPosition) < minDistance;
+          }) ||
+          equatorialDistance < 0.1 || // Ensure tree is away from equator
+          meridianDistance < 0.1      // Ensure tree is away from meridian
+        );
+      }
+
+      function randomLatLonToXYZ() {
+        let lat, lon;
+        do {
+          lat = THREE.MathUtils.randFloat(-90, 90);
+          lon = THREE.MathUtils.randFloat(-180, 180);
+        } while (
+          (Math.abs(lat) < 10) || // Avoid the equatorial road (latitude near 0)
+          (Math.abs(lon) < 10)    // Avoid the meridian road (longitude near 0)
+        );
+        return latLonToXYZ(lat, lon, EARTH_RADIUS);
+      }
+
+
+      function latLonToXYZ(lat, lon, radius = EARTH_RADIUS) {
+        const phi = THREE.MathUtils.degToRad(90 - lat);
+        const theta = THREE.MathUtils.degToRad(lon);
+        const x = radius * Math.sin(phi) * Math.cos(theta);
+        const y = radius * Math.cos(phi);
+        const z = radius * Math.sin(phi) * Math.sin(theta);
+        return new THREE.Vector3(x, y, z);
+      }
+
+      function alignObjectToNormal(object, normal) {
+        const up = new THREE.Vector3(0, 1, 0);
+        const quaternion = new THREE.Quaternion().setFromUnitVectors(up, normal);
+        object.quaternion.copy(quaternion);
+      }
+
 
       function onWindowResize() {
         camera.aspect = window.innerWidth / window.innerHeight;
