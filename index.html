@@ -94,20 +94,20 @@
         const road1Geometry = new THREE.CylinderGeometry(1.005, 1.005, 0.05, 100, 1, true);
         const road1Mesh = new THREE.Mesh(road1Geometry, roadMaterial);
         road1Mesh.rotation.z = Math.PI / 2;
-        scene.add(road1Mesh);
+        sphere.add(road1Mesh);
 
         // Meridian Road
         const road2Geometry = new THREE.CylinderGeometry(1.005, 1.005, 0.05, 100, 1, true);
         const road2Mesh = new THREE.Mesh(road2Geometry, roadMaterial);
         road2Mesh.rotation.y = Math.PI / 2;
-        scene.add(road2Mesh);
+        sphere.add(road2Mesh);
 
         // Load Car Model
         const loader = new GLTFLoader();
         loader.load('./old_rusty_car.glb', (gltf) => {
           car2 = gltf.scene;
           car2.scale.set(0.0005, 0.0005, 0.0005);
-          scene.add(car2);
+          sphere.add(car2);
         });
 
         // Controls
@@ -133,6 +133,8 @@
     const time = clock.getElapsedTime();
     const speed = 0.5;
     const radius = 1.005; // Match road radius (slightly above the sphere surface)
+    
+    //sphere.rotation.y += 0.01;
 
     // Calculate position on the sphere for rotation around the meridian
     const angle = time * speed; // Rotational angle
