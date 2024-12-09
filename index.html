@@ -3,7 +3,6 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Spinning White Sphere</title>
     <style>
       html, body {
         margin: 0;
@@ -62,10 +61,16 @@
         const ambientLight = new THREE.AmbientLight(0xffffff, 0.3);
         scene.add(ambientLight);
 
-        // Sphere
+        // Sphere with Grass Texture
         const geometry = new THREE.SphereGeometry(1, 64, 64);
-        const material = new THREE.MeshStandardMaterial({ color: 0xffffff });
-        sphere = new THREE.Mesh(geometry, material);
+        const textureLoader = new THREE.TextureLoader();
+        const grassTexture = textureLoader.load('./TCom_Ground_Grass01_header.jpg'); // Path to grass texture
+        const grassMaterial = new THREE.MeshStandardMaterial({
+          map: grassTexture,
+          side: THREE.DoubleSide, // Render both sides for visibility
+        });
+
+        sphere = new THREE.Mesh(geometry, grassMaterial);
         scene.add(sphere);
 
         // Orbit Controls
@@ -87,7 +92,7 @@
         requestAnimationFrame(animate);
 
         // Rotate the sphere automatically
-        sphere.rotation.y += 0.01;
+        sphere.rotation.y += 0.001;
 
         // Update controls for user interaction
         controls.update();
