@@ -29,6 +29,7 @@
       import { OrbitControls } from "three/addons/controls/OrbitControls.js";
 
       let scene, camera, renderer, controls, sphere;
+      let car1, car2, clock;
 
       window.onload = function () {
         init();
@@ -58,6 +59,11 @@
         directionalLight.position.set(5, 3, 5);
         scene.add(directionalLight);
 
+        // Add an additional directional light for better road illumination
+        const roadLight = new THREE.DirectionalLight(0xffffff, 0.5);
+        roadLight.position.set(-5, -3, 5);
+        scene.add(roadLight);
+
         const ambientLight = new THREE.AmbientLight(0xffffff, 0.3);
         scene.add(ambientLight);
         
@@ -73,10 +79,56 @@
         sphere = new THREE.Mesh(geometry, grassMaterial);
         scene.add(sphere);
 
+        // Load road texture
+        const roadTexture = new THREE.TextureLoader().load('./road-texture.jpg'); // Replace with your texture path
+        roadTexture.wrapS = THREE.RepeatWrapping;
+        roadTexture.wrapT = THREE.RepeatWrapping;
+        roadTexture.repeat.set(5, 1); // Adjust repetition to fit the road's geometry
+
+        // Road Material with texture
+        const roadMaterial = new THREE.MeshStandardMaterial({
+          map: roadTexture, // Use road texture
+          side: THREE.DoubleSide, // Ensure visibility from both sides
+          roughness: 0.8, // Slight roughness for realism
+          metalness: 0.2, // Subtle metallic effect
+        });
+
+        // Road 1 (Flat band around the equator)
+        const road1Geometry = new THREE.CylinderGeometry(1.005, 1.005, 0.05, 100, 1, true); // Thin cylinder
+        const road1Mesh = new THREE.Mesh(road1Geometry, roadMaterial);
+        road1Mesh.rotation.y = Math.PI / 2; // Align horizontally
+        scene.add(road1Mesh);
+
+
+
+        // Road 2 (Flat band crossing the poles)
+        const road2Geometry = new THREE.CylinderGeometry(1.005, 1.005, 0.05, 100, 1, true); // Thin cylinder
+        const road2Mesh = new THREE.Mesh(road2Geometry, roadMaterial);
+        road2Mesh.rotation.x = Math.PI / 2; // Align vertically
+        scene.add(road2Mesh);
+
+
+
+        // Car Geometry and Materials
+        const carGeometry = new THREE.BoxGeometry(0.1, 0.05, 0.05);
+        const carMaterial1 = new THREE.MeshBasicMaterial({ color: 0xff0000 }); // Red car
+        const carMaterial2 = new THREE.MeshBasicMaterial({ color: 0x0000ff }); // Blue car
+
+        // Cars
+        car1 = new THREE.Mesh(carGeometry, carMaterial1);
+        car2 = new THREE.Mesh(carGeometry, carMaterial2);
+        scene.add(car1);
+        scene.add(car2);
+
+
         // Orbit Controls
         controls = new OrbitControls(camera, renderer.domElement);
         controls.enableDamping = true; // Smooth rotation
         controls.dampingFactor = 0.05;
+
+        // Clock for animation
+        clock = new THREE.Clock();
+
 
         // Window resize handler
         window.addEventListener("resize", onWindowResize, false);
@@ -92,7 +144,27 @@
         requestAnimationFrame(animate);
 
         // Rotate the sphere automatically
-        sphere.rotation.y += 0.001;
+        sphere.rotation.y += 0.00;
+
+        const time = clock.getElapsedTime();
+
+      // Animate car1 (Horizontal road around the equator)
+      car1.position.set(
+        Math.cos(time) * 1.05, // Slightly above the road for visibility
+        0,
+        Math.sin(time) * 1.05
+      );
+
+
+      // Animate car2 (Vertical road around the poles)
+      car2.position.set(
+        Math.sin(time) * 1.02, // X-coordinate on the sphere
+        Math.cos(time) * 1.02, // Y-coordinate on the sphere
+        0 // Z-coordinate remains constant for this road
+      );
+      car2.lookAt(0, 0, 0); // Orient towards the center
+
+
 
         // Update controls for user interaction
         controls.update();
