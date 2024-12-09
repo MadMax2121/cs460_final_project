@@ -148,7 +148,7 @@
                 treeModel = object;
                 treeModel.traverse((child) => {
                   if (child.isMesh) {
-                    child.scale.set(0.002, 0.002, 0.002); // Scale the tree model
+                    child.scale.set(0.0013, 0.0013, 0.0013); // Scale the tree model
                   }
                 });
                 placeTrees(); // Place trees after the model is loaded
@@ -238,38 +238,38 @@
       }
 
       function animate() {
-  requestAnimationFrame(animate);
+        requestAnimationFrame(animate);
 
-  if (car2) {
-    const time = clock.getElapsedTime();
-    const speed = 0.5;
-    const radius = 1.005; // Match road radius (slightly above the sphere surface)
-    
-    //sphere.rotation.y += 0.01;
+        if (car2) {
+          const time = clock.getElapsedTime();
+          const speed = 0.5;
+          const radius = 1.005; // Match road radius (slightly above the sphere surface)
 
-    // Calculate position on the sphere for rotation around the meridian
-    const angle = time * speed; // Rotational angle
-    const position = new THREE.Vector3(
-      0, // X remains constant for meridian rotation
-      radius * Math.cos(angle), // Y changes
-      radius * Math.sin(angle)  // Z changes
-    );
-
-    // Update the car's position
-    car2.position.copy(position);
-
-    // Calculate the sphere's normal at this position
-    const normal = position.clone().normalize();
-
-    // Align the car's bottom to the sphere's normal
-    const quaternion = new THREE.Quaternion();
-    quaternion.setFromUnitVectors(new THREE.Vector3(0, 1, 0), normal);
-    car2.quaternion.copy(quaternion);
-  }
-
-  controls.update();
-  renderer.render(scene, camera);
-}
+          //sphere.rotation.y += 0.01;
+        
+          // Calculate position on the sphere for rotation around the meridian
+          const angle = time * speed; // Rotational angle
+          const position = new THREE.Vector3(
+            0, // X remains constant for meridian rotation
+            radius * Math.cos(angle), // Y changes
+            radius * Math.sin(angle)  // Z changes
+          );
+        
+          // Update the car's position
+          car2.position.copy(position);
+        
+          // Calculate the sphere's normal at this position
+          const normal = position.clone().normalize();
+        
+          // Align the car's bottom to the sphere's normal
+          const quaternion = new THREE.Quaternion();
+          quaternion.setFromUnitVectors(new THREE.Vector3(0, 1, 0), normal);
+          car2.quaternion.copy(quaternion);
+        }
+      
+        controls.update();
+        renderer.render(scene, camera);
+      }
 
     </script>
   </head>
