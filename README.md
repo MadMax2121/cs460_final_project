@@ -8,3 +8,10 @@ https://www.freepik.com/free-photo/close-up-bright-glitter_21080850.htm#fromView
 
 Car Model from:
 https://sketchfab.com/3d-models/old-rusty-car-95baa20ebc5d4d2e869f0b549be838fe
+
+
+skyscraper model:
+https://www.cgtrader.com/items/4230189/download-page (I used the blend file)
+
+tree model:
+https://www.cgtrader.com/items/2654599/download-pag

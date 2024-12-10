@@ -30,16 +30,13 @@
       import { OBJLoader } from "three/addons/loaders/OBJLoader.js";
       import { MTLLoader } from "three/addons/loaders/MTLLoader.js";
 
-
       let scene, camera, renderer, controls, sphere;
       let car2, clock;
-      let currentPath = 'meridian'; // Track which road the car is on
-      let transitionPoint = false; // Track if we're at an intersection
-
-      let treeModel;
+      let treeModel, buildingModel;
       const EARTH_RADIUS = 1;
       const placedPositions = []; // Track positions to avoid overlap
-
+      const ROAD_MARGIN = 0.12; // Distance from the roads to avoid placing objects
+      const EARTH_ROTATION_SPEED = 0.01; // Speed of Earth's rotation
 
       window.onload = function () {
         init();
@@ -52,7 +49,7 @@
 
         // Camera
         camera = new THREE.PerspectiveCamera(60, window.innerWidth / window.innerHeight, 0.1, 1000);
-        camera.position.set(0, 0, 3);
+        camera.position.set(0, 0, 5); // Start farther away
 
         // Renderer
         renderer = new THREE.WebGLRenderer({ antialias: true });
@@ -65,13 +62,9 @@
         directionalLight.position.set(5, 3, 5);
         scene.add(directionalLight);
 
-        const roadLight = new THREE.DirectionalLight(0xffffff, 0.5);
-        roadLight.position.set(-5, -3, 5);
-        scene.add(roadLight);
-
         const ambientLight = new THREE.AmbientLight(0xffffff, 0.3);
         scene.add(ambientLight);
-        
+
         // Sphere
         const geometry = new THREE.SphereGeometry(1, 64, 64);
         const textureLoader = new THREE.TextureLoader();
@@ -89,13 +82,10 @@
         roadTexture.wrapS = THREE.RepeatWrapping;
         roadTexture.wrapT = THREE.RepeatWrapping;
         roadTexture.repeat.set(5, 1);
-        roadTexture.anisotropy = renderer.capabilities.getMaxAnisotropy();
 
         const roadMaterial = new THREE.MeshStandardMaterial({
           map: roadTexture,
           side: THREE.DoubleSide,
-          roughness: 0.8,
-          metalness: 0.2,
         });
 
         // Equatorial Road
@@ -110,56 +100,50 @@
         road2Mesh.rotation.y = Math.PI / 2;
         sphere.add(road2Mesh);
 
-        // Load Car Model
-        const loader = new GLTFLoader();
-        loader.load('./old_rusty_car.glb', (gltf) => {
-          car2 = gltf.scene;
-          car2.scale.set(0.0005, 0.0005, 0.0005);
-          sphere.add(car2);
-        });
-
-        // Load Trees
-        loadTree();
+        // Load Models
+        loadCar();
+        loadTrees();
+        loadBuildings();
 
         // Controls
         controls = new OrbitControls(camera, renderer.domElement);
         controls.enableDamping = true;
         controls.dampingFactor = 0.05;
 
+
         clock = new THREE.Clock();
 
         window.addEventListener("resize", onWindowResize, false);
       }
 
-      function loadTree() {
+      function loadCar() {
+        const loader = new GLTFLoader();
+        loader.load('./old_rusty_car.glb', (gltf) => {
+          car2 = gltf.scene;
+          car2.scale.set(0.0005, 0.0005, 0.0005);
+          sphere.add(car2);
+        });
+      }
+
+      function loadTrees() {
         const mtlLoader = new MTLLoader();
         const objLoader = new OBJLoader();
-        const treeMtl = './trees/tree.mtl'; // Replace with actual path
-        const treeObj = './trees/tree.obj'; // Replace with actual path
+        const treeMtl = './trees/tree.mtl';
+        const treeObj = './trees/tree.obj';
 
-        mtlLoader.load(
-          treeMtl,
-          (materials) => {
-            materials.preload();
-            objLoader.setMaterials(materials);
-            objLoader.load(
-              treeObj,
-              (object) => {
-                treeModel = object;
-                treeModel.traverse((child) => {
-                  if (child.isMesh) {
-                    child.scale.set(0.0013, 0.0013, 0.0013); // Scale the tree model
-                  }
-                });
-                placeTrees(); // Place trees after the model is loaded
-              },
-              undefined,
-              (error) => console.error(`Failed to load tree model: ${treeObj}`, error)
-            );
-          },
-          undefined,
-          (error) => console.error(`Failed to load tree material: ${treeMtl}`, error)
-        );
+        mtlLoader.load(treeMtl, (materials) => {
+          materials.preload();
+          objLoader.setMaterials(materials);
+          objLoader.load(treeObj, (object) => {
+            treeModel = object;
+            treeModel.traverse((child) => {
+              if (child.isMesh) {
+                child.scale.set(0.0013, 0.0013, 0.0013);
+              }
+            });
+            placeTrees();
+          });
+        });
       }
 
       function placeTrees() {
@@ -170,36 +154,79 @@
 
       function addTree() {
         if (!treeModel) return;
-      
+
         let position;
         do {
           position = randomLatLonToXYZ();
-        } while (isPositionTooClose(position, 0.05));
-      
+        } while (isPositionTooClose(position, 0.05) || isPositionNearRoad(position));
+
         const tree = treeModel.clone();
         const normal = position.clone().normalize();
         const adjustedPosition = position.addScaledVector(normal, 0.01);
-      
+
         tree.position.copy(adjustedPosition);
         alignObjectToNormal(tree, normal);
-        scene.add(tree);
+        sphere.add(tree); // Attach tree to sphere
+        placedPositions.push(position);
+      }
+
+      function loadBuildings() {
+        const mtlLoader = new MTLLoader();
+        const objLoader = new OBJLoader();
+        const buildingMtl = './buildings/build1.mtl';
+        const buildingObj = './buildings/build1.obj';
+
+        mtlLoader.load(buildingMtl, (materials) => {
+          materials.preload();
+          objLoader.setMaterials(materials);
+          objLoader.load(buildingObj, (object) => {
+            buildingModel = object;
+            buildingModel.traverse((child) => {
+              if (child.isMesh) {
+                child.scale.set(0.0015, 0.0015, 0.0015);
+              }
+            });
+            placeBuildings();
+          });
+        });
+      }
+
+      function placeBuildings() {
+        for (let i = 0; i < 10; i++) {
+          addBuilding();
+        }
+      }
+
+      function addBuilding() {
+        if (!buildingModel) return;
+
+        let position;
+        do {
+          position = randomLatLonToXYZ();
+        } while (isPositionTooClose(position, 0.1) || isPositionNearRoad(position));
+
+        const building = buildingModel.clone();
+        const normal = position.clone().normalize();
+        const adjustedPosition = position.addScaledVector(normal, 0.01);
+
+        building.position.copy(adjustedPosition);
+        alignObjectToNormal(building, normal);
+        sphere.add(building); // Attach building to sphere
         placedPositions.push(position);
       }
 
       function isPositionTooClose(position, minDistance) {
-        const equatorialPlane = new THREE.Vector3(0, 1, 0); // Y-axis (equator)
-        const meridianPlane = new THREE.Vector3(1, 0, 0);  // X-axis (meridian)
+        return placedPositions.some((placedPosition) => position.distanceTo(placedPosition) < minDistance);
+      }
+
+      function isPositionNearRoad(position) {
+        const equatorialPlane = new THREE.Vector3(0, 1, 0); // Equatorial road (Y-axis)
+        const meridianPlane = new THREE.Vector3(1, 0, 0); // Meridian road (X-axis)
 
         const equatorialDistance = Math.abs(position.dot(equatorialPlane));
         const meridianDistance = Math.abs(position.dot(meridianPlane));
 
-        return (
-          placedPositions.some((placedPosition) => {
-            return position.distanceTo(placedPosition) < minDistance;
-          }) ||
-          equatorialDistance < 0.1 || // Ensure tree is away from equator
-          meridianDistance < 0.1      // Ensure tree is away from meridian
-        );
+        return equatorialDistance < ROAD_MARGIN || meridianDistance < ROAD_MARGIN;
       }
 
       function randomLatLonToXYZ() {
@@ -207,13 +234,9 @@
         do {
           lat = THREE.MathUtils.randFloat(-90, 90);
           lon = THREE.MathUtils.randFloat(-180, 180);
-        } while (
-          (Math.abs(lat) < 10) || // Avoid the equatorial road (latitude near 0)
-          (Math.abs(lon) < 10)    // Avoid the meridian road (longitude near 0)
-        );
+        } while ((Math.abs(lat) < 10) || (Math.abs(lon) < 10));
         return latLonToXYZ(lat, lon, EARTH_RADIUS);
       }
-
 
       function latLonToXYZ(lat, lon, radius = EARTH_RADIUS) {
         const phi = THREE.MathUtils.degToRad(90 - lat);
@@ -230,7 +253,6 @@
         object.quaternion.copy(quaternion);
       }
 
-
       function onWindowResize() {
         camera.aspect = window.innerWidth / window.innerHeight;
         camera.updateProjectionMatrix();
@@ -243,34 +265,26 @@
         if (car2) {
           const time = clock.getElapsedTime();
           const speed = 0.5;
-          const radius = 1.005; // Match road radius (slightly above the sphere surface)
+          const radius = 1.005; // Road radius
 
-          //sphere.rotation.y += 0.01;
-        
-          // Calculate position on the sphere for rotation around the meridian
-          const angle = time * speed; // Rotational angle
+          const angle = time * speed;
           const position = new THREE.Vector3(
             0, // X remains constant for meridian rotation
             radius * Math.cos(angle), // Y changes
             radius * Math.sin(angle)  // Z changes
           );
-        
-          // Update the car's position
+
           car2.position.copy(position);
-        
-          // Calculate the sphere's normal at this position
           const normal = position.clone().normalize();
-        
-          // Align the car's bottom to the sphere's normal
-          const quaternion = new THREE.Quaternion();
-          quaternion.setFromUnitVectors(new THREE.Vector3(0, 1, 0), normal);
+          const quaternion = new THREE.Quaternion().setFromUnitVectors(new THREE.Vector3(0, 1, 0), normal);
           car2.quaternion.copy(quaternion);
         }
-      
+
+        sphere.rotation.y += EARTH_ROTATION_SPEED; // Rotate the Earth
+
         controls.update();
         renderer.render(scene, camera);
       }
-
     </script>
   </head>
   <body></body>
