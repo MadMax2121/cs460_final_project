@@ -33,7 +33,7 @@
 
       // Global variables
       let scene, camera, renderer, controls, sphere;
-      let car, car2, clock;
+      let car, car2, plane, clock;
       let treeModel, pineTreeModel, tallPineModel;
       let buildingModel, highRiseModel, glassSkyscraperModel;
 
@@ -122,6 +122,7 @@
         // Load Models
         loadCar();
         loadCar2();
+        loadPlane();
         loadTrees();
         loadPineTree();
         loadTallPine();
@@ -153,6 +154,15 @@
           car2 = gltf.scene;
           car2.scale.set(0.0005, 0.0005, 0.0005);
           sphere.add(car2);
+        });
+      }
+
+      function loadPlane() {
+        const loader = new GLTFLoader();
+        loader.load("./celera_500l.glb", (gltf) => {
+            plane = gltf.scene;
+            plane.scale.set(0.002, 0.002, 0.002); // Adjust scale as needed
+            sphere.add(plane);
         });
       }
 
@@ -406,6 +416,35 @@
 
           car2.rotateX(-Math.PI / 100);
           car2.rotateY(Math.PI);
+      }
+
+      if (plane) {
+          const time = clock.getElapsedTime();
+          const speed = 0.3;
+          const radius = 1.5; 
+          const angle = time * speed;
+      
+          const position = new THREE.Vector3(
+              radius * Math.sin(angle),
+              radius * Math.sin(angle * 0.5) * 0.3,
+              radius * Math.cos(angle)
+          );
+          plane.position.copy(position);
+      
+          const tangent = new THREE.Vector3(
+              Math.cos(angle),
+              Math.cos(angle * 0.5) * 0.3,
+              -Math.sin(angle)
+          ).normalize();
+      
+          const up = position.clone().normalize();
+      
+          const matrix = new THREE.Matrix4();
+          matrix.lookAt(new THREE.Vector3(0, 0, 0), tangent, up);
+          plane.quaternion.setFromRotationMatrix(matrix);
+      
+          plane.rotateX(-Math.PI/100); 
+          plane.rotateY(Math.PI/2.5);
       }
 
         sphere.rotation.y += EARTH_ROTATION_SPEED;

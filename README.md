@@ -11,6 +11,9 @@ https://sketchfab.com/3d-models/old-rusty-car-95baa20ebc5d4d2e869f0b549be838fe
 
 https://sketchfab.com/3d-models/old-rusty-car-2-544aa41de67b48cf89f8fcc2bb06e8f4
 
+Plane Model from:
+https://sketchfab.com/3d-models/celera-500l-306092a41d174e719e83bd143a5ad042
+
 
 skyscraper (tall) model:
 https://www.cgtrader.com/items/4230189/download-page (I used the blend file)
