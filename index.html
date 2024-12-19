@@ -391,7 +391,7 @@
 
         if (car2) {
           const time = clock.getElapsedTime();
-          const speed = 0.5;
+          const speed = 0.3;
           const radius = 1.005;
           const angle = time * speed;
 
@@ -419,32 +419,32 @@
       }
 
       if (plane) {
-          const time = clock.getElapsedTime();
-          const speed = 0.3;
-          const radius = 1.5; 
+        const time = clock.getElapsedTime();
+          const speed = 0.7;
+          const radius = 2;
           const angle = time * speed;
-      
+
           const position = new THREE.Vector3(
-              radius * Math.sin(angle),
-              radius * Math.sin(angle * 0.5) * 0.3,
-              radius * Math.cos(angle)
+              (radius) * Math.sin(angle),  
+              0,
+              (radius) * Math.cos(angle)   
           );
           plane.position.copy(position);
-      
+
           const tangent = new THREE.Vector3(
               Math.cos(angle),
-              Math.cos(angle * 0.5) * 0.3,
+              0,
               -Math.sin(angle)
           ).normalize();
-      
+
           const up = position.clone().normalize();
-      
+
           const matrix = new THREE.Matrix4();
           matrix.lookAt(new THREE.Vector3(0, 0, 0), tangent, up);
           plane.quaternion.setFromRotationMatrix(matrix);
-      
-          plane.rotateX(-Math.PI/100); 
-          plane.rotateY(Math.PI/2.5);
+
+          plane.rotateX(-Math.PI / 100);
+          plane.rotateY(Math.PI/2);
       }
 
         sphere.rotation.y += EARTH_ROTATION_SPEED;
