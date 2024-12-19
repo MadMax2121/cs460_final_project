@@ -182,7 +182,7 @@
         const gltfLoader = new GLTFLoader();
         gltfLoader.load("./trees/tall_pine.glb", (gltf) => {
           tallPineModel = gltf.scene;
-          tallPineModel.scale.set(0.01, 0.01, 0.01);
+          tallPineModel.scale.set(0.005, 0.005, 0.005);
           tallPineModelLoaded = true;
           checkAndPlaceTrees();
         });
@@ -195,7 +195,7 @@
       }
 
       function placeTrees() {
-        for (let i = 0; i < 20; i++) {
+        for (let i = 0; i < 50; i++) {
           addTree();
         }
       }
