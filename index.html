@@ -48,10 +48,12 @@
 
       const EARTH_RADIUS = 1;
       const placedPositions = []; 
-      // placedPositions will now store objects in the form: { position: Vector3, radius: number }
-
       const ROAD_MARGIN = 0.2;
       const EARTH_ROTATION_SPEED = 0.01;
+
+      // Hitbox radii
+      const TREE_RADIUS = 0.05;       
+      const BUILDING_RADIUS = 0.1;   
 
       // Loading Flags
       let buildingModelLoaded = false;
@@ -62,21 +64,43 @@
       let pineTreeModelLoaded = false;
       let tallPineModelLoaded = false;
 
-      // Hitbox radii
-      const TREE_RADIUS = 0.05;       
-      const BUILDING_RADIUS = 0.1;   
-
       window.onload = function () {
         init();
         animate();
         initializePaneControls();
-        
       };
+
+      //Adds the stars to the scene
+      function createStars() {
+        const starCount = 2000;
+        const geometry = new THREE.BufferGeometry();
+        const positions = new Float32Array(starCount * 3);
+
+        for (let i = 0; i < starCount; i++) {
+          positions[i * 3] = (Math.random() - 0.5) * 2000;
+          positions[i * 3 + 1] = (Math.random() - 0.5) * 2000;
+          positions[i * 3 + 2] = (Math.random() - 0.5) * 2000;
+        }
+
+        geometry.setAttribute('position', new THREE.BufferAttribute(positions, 3));
+
+        const material = new THREE.PointsMaterial({
+          color: 0xffffff,
+          size: 0.5,
+          sizeAttenuation: true
+        });
+
+        const stars = new THREE.Points(geometry, material);
+        scene.add(stars);
+      }
 
       function init() {
         // Scene
         scene = new THREE.Scene();
         
+        // Add stars
+        createStars();
+
         // Setup stats pane
         setupStats();
 
@@ -395,11 +419,10 @@
         alignObjectToNormal(chosenBuilding, normal);
         sphere.add(chosenBuilding);
 
-        // Store the placed object with its hitbox radius
         placedPositions.push({ position: adjustedPosition.clone(), radius: BUILDING_RADIUS });
       }
 
-      // Check if position is valid (no overlap and not near road)
+      // Check if position is valid
       function isPositionValid(position, radius) {
         return !isPositionTooClose(position, radius) && !isPositionNearRoad(position);
       }
@@ -503,32 +526,32 @@
           car2.rotateY(Math.PI);
         }
 
-      if (plane) {
-        const time = clock.getElapsedTime();
-        const speed = params.planeSpeed;
-        const radius = 2;
-        const angle = time * speed;
-        const position = new THREE.Vector3(
-            (radius) * Math.sin(angle),  
-            0,
-            (radius) * Math.cos(angle)   
-        );
-        plane.position.copy(position);
-        const tangent = new THREE.Vector3(
-            Math.cos(angle),
-            0,
-            -Math.sin(angle)
-        ).normalize();
-        const up = position.clone().normalize();
-        const matrix = new THREE.Matrix4();
-        matrix.lookAt(new THREE.Vector3(0, 0, 0), tangent, up);
-        plane.quaternion.setFromRotationMatrix(matrix);
-        
-        plane.rotateX(-Math.PI / 100);
-        plane.rotateY(Math.PI/2);
-      }
+        if (plane) {
+          const time = clock.getElapsedTime();
+          const speed = params.planeSpeed;
+          const radius = 2;
+          const angle = time * speed;
+          const position = new THREE.Vector3(
+              (radius) * Math.sin(angle),  
+              0,
+              (radius) * Math.cos(angle)   
+          );
+          plane.position.copy(position);
+          const tangent = new THREE.Vector3(
+              Math.cos(angle),
+              0,
+              -Math.sin(angle)
+          ).normalize();
+          const up = position.clone().normalize();
+          const matrix = new THREE.Matrix4();
+          matrix.lookAt(new THREE.Vector3(0, 0, 0), tangent, up);
+          plane.quaternion.setFromRotationMatrix(matrix);
+          
+          plane.rotateX(-Math.PI / 100);
+          plane.rotateY(Math.PI/2);
+        }
 
-      sphere.rotation.y += params.sphereRotationSpeed;
+        sphere.rotation.y += params.sphereRotationSpeed;
       
         controls.update();
         renderer.render(scene, camera);
