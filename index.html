@@ -42,7 +42,8 @@
         carSpeed: 0.5,
         car2Speed: 0.3,
         planeSpeed: 0.7,
-        sphereRotationSpeed: 0.01
+        sphereRotationSpeed: 0.01,
+        numberOfTrees: 50   
       };
 
       const EARTH_RADIUS = 1;
@@ -62,8 +63,8 @@
       let tallPineModelLoaded = false;
 
       // Hitbox radii
-      const TREE_RADIUS = 0.05;       // All trees have radius 0.05
-      const BUILDING_RADIUS = 0.1;    // All buildings have radius 0.1
+      const TREE_RADIUS = 0.05;       
+      const BUILDING_RADIUS = 0.1;   
 
       window.onload = function () {
         init();
@@ -183,6 +184,17 @@
           step: 0.001,
           label: 'Earth Rotation'
         });
+
+        const environmentFolder = pane.addFolder({ title: 'Environment Controls' });
+
+        environmentFolder.addBinding(params, 'numberOfTrees', {
+          min: 0,
+          max: 200,
+          step: 1,
+          label: 'Number of Trees'
+        }).on('change', (ev) => {
+          updateTrees(ev.value);
+        });
       }
 
       function setupStats() {
@@ -212,7 +224,7 @@
         const loader = new GLTFLoader();
         loader.load("./celera_500l.glb", (gltf) => {
             plane = gltf.scene;
-            plane.scale.set(0.002, 0.002, 0.002); // Adjust scale as needed
+            plane.scale.set(0.002, 0.002, 0.002);
             sphere.add(plane);
         });
       }
@@ -266,30 +278,50 @@
       }
 
       function placeTrees() {
-        for (let i = 0; i < 50; i++) {
+        for (let i = 0; i < params.numberOfTrees; i++) {
+          addTree();
+        }
+      }
+
+      function updateTrees(newCount) {
+        const treesToRemove = [];
+        sphere.traverse((child) => {
+          if (child.isTree) {  
+            treesToRemove.push(child);
+          }
+        });
+
+        treesToRemove.forEach(tree => {
+          sphere.remove(tree);
+        });
+
+        placedPositions.length = 0;
+
+        for (let i = 0; i < newCount; i++) {
           addTree();
         }
       }
 
       function addTree() {
         if (!treeModel || !pineTreeModel || !tallPineModel) return;
-
+      
         let position;
         do {
           position = randomLatLonToXYZ();
         } while (!isPositionValid(position, TREE_RADIUS));
-
+      
         const trees = [treeModel, pineTreeModel, tallPineModel];
         const chosenTree = trees[Math.floor(Math.random() * trees.length)].clone();
 
+        chosenTree.isTree = true;
+      
         const normal = position.clone().normalize();
         const adjustedPosition = position.addScaledVector(normal, 0.01);
-
+      
         chosenTree.position.copy(adjustedPosition);
         alignObjectToNormal(chosenTree, normal);
         sphere.add(chosenTree);
-
-        // Store the placed object with its hitbox radius
+      
         placedPositions.push({ position: adjustedPosition.clone(), radius: TREE_RADIUS });
       }
 
