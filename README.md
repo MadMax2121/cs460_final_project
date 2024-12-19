@@ -1,5 +1,8 @@
-# cs460_final_project
+### Interactive 3D Globe Simulation
 
+This interactive 3D miniature earth visualization project, built with Three.js, offers a dynamic and immersive experience, allowing users to explore a rotating Earth-like sphere populated with roads, vehicles, trees, and buildings. The application includes an intuitive control panel powered by Tweakpane, enabling users to adjust the movement speeds of objects such as cars and planes, as well as fine-tune environmental parameters like the number of trees and other models in the scene. With real-time rendering, customizable animations, and support for a variety of 3D model formats (GLTF, OBJ, MTL), this project demonstrates the seamless integration of physics-based rendering and user-controlled interactions in a visually engaging 3D environment.
+
+# How to run
 In order to install and run the project, just git clone the project:
 ````bash
 git clone https://github.com/MadMax2121/cs460_final_project.git
