@@ -140,19 +140,19 @@
 
       function loadCar() {
         const loader = new GLTFLoader();
-        loader.load("./old_rusty_car.glb", (gltf) => {
-          car2 = gltf.scene;
-          car2.scale.set(0.0005, 0.0005, 0.0005);
-          sphere.add(car2);
+        loader.load("./old_rusty_car_2.glb", (gltf) => {
+          car = gltf.scene;
+          car.scale.set(0.0012, 0.0012, 0.0012);
+          sphere.add(car);
         });
       }
 
       function loadCar2() {
         const loader = new GLTFLoader();
-        loader.load("./old_rusty_car_2.glb", (gltf) => {
-          car = gltf.scene;
-          car.scale.set(0.0012, 0.0012, 0.0012);
-          sphere.add(car);
+        loader.load("./old_rusty_car.glb", (gltf) => {
+          car2 = gltf.scene;
+          car2.scale.set(0.0005, 0.0005, 0.0005);
+          sphere.add(car2);
         });
       }
 
@@ -383,19 +383,30 @@
           const time = clock.getElapsedTime();
           const speed = 0.5;
           const radius = 1.005;
-
           const angle = time * speed;
-          const position = new THREE.Vector3(  
-            radius * Math.sin(angle),  
-            0,            
-            radius * Math.cos(angle)
-          );
 
+          const position = new THREE.Vector3(
+              (radius) * Math.sin(angle),  
+              0,
+              (radius) * Math.cos(angle)   
+          );
           car2.position.copy(position);
-          const normal = position.clone().normalize();
-          const quaternion = new THREE.Quaternion().setFromUnitVectors(new THREE.Vector3(0, 1, 0), normal);
-          car2.quaternion.copy(quaternion);
-        }
+
+          const tangent = new THREE.Vector3(
+              Math.cos(angle),
+              0,
+              -Math.sin(angle)
+          ).normalize();
+
+          const up = position.clone().normalize();
+
+          const matrix = new THREE.Matrix4();
+          matrix.lookAt(new THREE.Vector3(0, 0, 0), tangent, up);
+          car2.quaternion.setFromRotationMatrix(matrix);
+
+          car2.rotateX(-Math.PI / 100);
+          car2.rotateY(Math.PI);
+      }
 
         sphere.rotation.y += EARTH_ROTATION_SPEED;
 
