@@ -23,19 +23,27 @@
         }
       }
     </script>
-
+    <script src="https://mrdoob.github.io/stats.js/build/stats.min.js"></script>
     <script type="module">
       import * as THREE from "three";
       import { MTLLoader } from "three/addons/loaders/MTLLoader.js";
       import { OBJLoader } from "three/addons/loaders/OBJLoader.js";
       import { GLTFLoader } from "three/addons/loaders/GLTFLoader.js";
       import { OrbitControls } from "three/addons/controls/OrbitControls.js";
+      import { Pane } from 'https://cdn.jsdelivr.net/npm/tweakpane@4.0.5/dist/tweakpane.min.js';
 
       // Global variables
       let scene, camera, renderer, controls, sphere;
       let car, car2, plane, clock;
       let treeModel, pineTreeModel, tallPineModel;
       let buildingModel, highRiseModel, glassSkyscraperModel;
+      let pane, statsPane;
+      const params = {
+        carSpeed: 0.5,
+        car2Speed: 0.3,
+        planeSpeed: 0.7,
+        sphereRotationSpeed: 0.01
+      };
 
       const EARTH_RADIUS = 1;
       const placedPositions = []; 
@@ -60,11 +68,16 @@
       window.onload = function () {
         init();
         animate();
+        initializePaneControls();
+        
       };
 
       function init() {
         // Scene
         scene = new THREE.Scene();
+        
+        // Setup stats pane
+        setupStats();
 
         // Camera
         camera = new THREE.PerspectiveCamera(60, window.innerWidth / window.innerHeight, 0.1, 1000);
@@ -137,6 +150,44 @@
         clock = new THREE.Clock();
 
         window.addEventListener("resize", onWindowResize, false);
+      }
+
+      function initializePaneControls() {
+        pane = new Pane();
+        const movementFolder = pane.addFolder({ title: 'Movement Controls' });
+            
+        movementFolder.addBinding(params, 'carSpeed', {
+          min: 0,
+          max: 2,
+          step: 0.1,
+          label: 'Car 1 Speed'
+        });
+        
+        movementFolder.addBinding(params, 'car2Speed', {
+          min: 0,
+          max: 2,
+          step: 0.1,
+          label: 'Car 2 Speed'
+        });
+        
+        movementFolder.addBinding(params, 'planeSpeed', {
+          min: 0,
+          max: 2,
+          step: 0.1,
+          label: 'Plane Speed'
+        });
+        
+        movementFolder.addBinding(params, 'sphereRotationSpeed', {
+          min: -0.05,
+          max: 0.05,
+          step: 0.001,
+          label: 'Earth Rotation'
+        });
+      }
+
+      function setupStats() {
+        statsPane = new Stats();
+        document.body.appendChild(statsPane.domElement);
       }
 
       function loadCar() {
@@ -371,9 +422,11 @@
       function animate() {
         requestAnimationFrame(animate);
 
+        statsPane.update(); 
+
         if (car) {
           const time = clock.getElapsedTime();
-          const speed = 0.5;
+          const speed = params.carSpeed;
           const radius = 1.005;
 
           const angle = time * speed;
@@ -391,7 +444,7 @@
 
         if (car2) {
           const time = clock.getElapsedTime();
-          const speed = 0.3;
+          const speed = params.car2Speed;
           const radius = 1.005;
           const angle = time * speed;
 
@@ -416,39 +469,35 @@
 
           car2.rotateX(-Math.PI / 100);
           car2.rotateY(Math.PI);
-      }
+        }
 
       if (plane) {
         const time = clock.getElapsedTime();
-          const speed = 0.7;
-          const radius = 2;
-          const angle = time * speed;
-
-          const position = new THREE.Vector3(
-              (radius) * Math.sin(angle),  
-              0,
-              (radius) * Math.cos(angle)   
-          );
-          plane.position.copy(position);
-
-          const tangent = new THREE.Vector3(
-              Math.cos(angle),
-              0,
-              -Math.sin(angle)
-          ).normalize();
-
-          const up = position.clone().normalize();
-
-          const matrix = new THREE.Matrix4();
-          matrix.lookAt(new THREE.Vector3(0, 0, 0), tangent, up);
-          plane.quaternion.setFromRotationMatrix(matrix);
-
-          plane.rotateX(-Math.PI / 100);
-          plane.rotateY(Math.PI/2);
+        const speed = params.planeSpeed;
+        const radius = 2;
+        const angle = time * speed;
+        const position = new THREE.Vector3(
+            (radius) * Math.sin(angle),  
+            0,
+            (radius) * Math.cos(angle)   
+        );
+        plane.position.copy(position);
+        const tangent = new THREE.Vector3(
+            Math.cos(angle),
+            0,
+            -Math.sin(angle)
+        ).normalize();
+        const up = position.clone().normalize();
+        const matrix = new THREE.Matrix4();
+        matrix.lookAt(new THREE.Vector3(0, 0, 0), tangent, up);
+        plane.quaternion.setFromRotationMatrix(matrix);
+        
+        plane.rotateX(-Math.PI / 100);
+        plane.rotateY(Math.PI/2);
       }
 
-        sphere.rotation.y += EARTH_ROTATION_SPEED;
-
+      sphere.rotation.y += params.sphereRotationSpeed;
+      
         controls.update();
         renderer.render(scene, camera);
       }
