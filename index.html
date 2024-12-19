@@ -33,7 +33,7 @@
 
       // Global variables
       let scene, camera, renderer, controls, sphere;
-      let car2, clock;
+      let car, car2, clock;
       let treeModel, pineTreeModel, tallPineModel;
       let buildingModel, highRiseModel, glassSkyscraperModel;
 
@@ -121,6 +121,7 @@
 
         // Load Models
         loadCar();
+        loadCar2();
         loadTrees();
         loadPineTree();
         loadTallPine();
@@ -143,6 +144,15 @@
           car2 = gltf.scene;
           car2.scale.set(0.0005, 0.0005, 0.0005);
           sphere.add(car2);
+        });
+      }
+
+      function loadCar2() {
+        const loader = new GLTFLoader();
+        loader.load("./old_rusty_car_2.glb", (gltf) => {
+          car = gltf.scene;
+          car.scale.set(0.0012, 0.0012, 0.0012);
+          sphere.add(car);
         });
       }
 
@@ -351,7 +361,7 @@
       function animate() {
         requestAnimationFrame(animate);
 
-        if (car2) {
+        if (car) {
           const time = clock.getElapsedTime();
           const speed = 0.5;
           const radius = 1.005;
@@ -361,6 +371,24 @@
             0,
             radius * Math.cos(angle),
             radius * Math.sin(angle)
+          );
+
+          car.position.copy(position);
+          const normal = position.clone().normalize();
+          const quaternion = new THREE.Quaternion().setFromUnitVectors(new THREE.Vector3(0, 1, 0), normal);
+          car.quaternion.copy(quaternion);
+        }
+
+        if (car2) {
+          const time = clock.getElapsedTime();
+          const speed = 0.5;
+          const radius = 1.005;
+
+          const angle = time * speed;
+          const position = new THREE.Vector3(  
+            radius * Math.sin(angle),  
+            0,            
+            radius * Math.cos(angle)
           );
 
           car2.position.copy(position);
