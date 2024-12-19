@@ -4,7 +4,8 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <style>
-      html, body {
+      html,
+      body {
         margin: 0;
         padding: 0;
         height: 100%;
@@ -25,18 +26,36 @@
 
     <script type="module">
       import * as THREE from "three";
-      import { OrbitControls } from "three/addons/controls/OrbitControls.js";
-      import { GLTFLoader } from "three/addons/loaders/GLTFLoader.js";
-      import { OBJLoader } from "three/addons/loaders/OBJLoader.js";
       import { MTLLoader } from "three/addons/loaders/MTLLoader.js";
+      import { OBJLoader } from "three/addons/loaders/OBJLoader.js";
+      import { GLTFLoader } from "three/addons/loaders/GLTFLoader.js";
+      import { OrbitControls } from "three/addons/controls/OrbitControls.js";
 
+      // Global variables
       let scene, camera, renderer, controls, sphere;
       let car2, clock;
-      let treeModel, buildingModel;
+      let treeModel, pineTreeModel, tallPineModel;
+      let buildingModel, highRiseModel, glassSkyscraperModel;
+
       const EARTH_RADIUS = 1;
-      const placedPositions = []; // Track positions to avoid overlap
-      const ROAD_MARGIN = 0.12; // Distance from the roads to avoid placing objects
-      const EARTH_ROTATION_SPEED = 0.01; // Speed of Earth's rotation
+      const placedPositions = []; 
+      // placedPositions will now store objects in the form: { position: Vector3, radius: number }
+
+      const ROAD_MARGIN = 0.2;
+      const EARTH_ROTATION_SPEED = 0.01;
+
+      // Loading Flags
+      let buildingModelLoaded = false;
+      let highRiseModelLoaded = false;
+      let glassSkyscraperModelLoaded = false;
+
+      let treeModelLoaded = false;
+      let pineTreeModelLoaded = false;
+      let tallPineModelLoaded = false;
+
+      // Hitbox radii
+      const TREE_RADIUS = 0.05;       // All trees have radius 0.05
+      const BUILDING_RADIUS = 0.1;    // All buildings have radius 0.1
 
       window.onload = function () {
         init();
@@ -49,7 +68,7 @@
 
         // Camera
         camera = new THREE.PerspectiveCamera(60, window.innerWidth / window.innerHeight, 0.1, 1000);
-        camera.position.set(0, 0, 5); // Start farther away
+        camera.position.set(0, 0, 5);
 
         // Renderer
         renderer = new THREE.WebGLRenderer({ antialias: true });
@@ -65,10 +84,10 @@
         const ambientLight = new THREE.AmbientLight(0xffffff, 0.3);
         scene.add(ambientLight);
 
-        // Sphere
+        // Sphere (Earth)
         const geometry = new THREE.SphereGeometry(1, 64, 64);
         const textureLoader = new THREE.TextureLoader();
-        const grassTexture = textureLoader.load('./grass-texture.jpg');
+        const grassTexture = textureLoader.load("./grass-texture.jpg");
         const grassMaterial = new THREE.MeshStandardMaterial({
           map: grassTexture,
           side: THREE.DoubleSide,
@@ -78,7 +97,7 @@
         scene.add(sphere);
 
         // Roads
-        const roadTexture = new THREE.TextureLoader().load('./road-texture.jpg');
+        const roadTexture = new THREE.TextureLoader().load("./road-texture.jpg");
         roadTexture.wrapS = THREE.RepeatWrapping;
         roadTexture.wrapT = THREE.RepeatWrapping;
         roadTexture.repeat.set(5, 1);
@@ -103,13 +122,15 @@
         // Load Models
         loadCar();
         loadTrees();
+        loadPineTree();
+        loadTallPine();
         loadBuildings();
+        loadGlassSkyscraper();
 
         // Controls
         controls = new OrbitControls(camera, renderer.domElement);
         controls.enableDamping = true;
         controls.dampingFactor = 0.05;
-
 
         clock = new THREE.Clock();
 
@@ -118,7 +139,7 @@
 
       function loadCar() {
         const loader = new GLTFLoader();
-        loader.load('./old_rusty_car.glb', (gltf) => {
+        loader.load("./old_rusty_car.glb", (gltf) => {
           car2 = gltf.scene;
           car2.scale.set(0.0005, 0.0005, 0.0005);
           sphere.add(car2);
@@ -128,8 +149,8 @@
       function loadTrees() {
         const mtlLoader = new MTLLoader();
         const objLoader = new OBJLoader();
-        const treeMtl = './trees/tree.mtl';
-        const treeObj = './trees/tree.obj';
+        const treeMtl = "./trees/tree.mtl";
+        const treeObj = "./trees/tree.obj";
 
         mtlLoader.load(treeMtl, (materials) => {
           materials.preload();
@@ -141,9 +162,36 @@
                 child.scale.set(0.0013, 0.0013, 0.0013);
               }
             });
-            placeTrees();
+            treeModelLoaded = true;
+            checkAndPlaceTrees();
           });
         });
+      }
+
+      function loadPineTree() {
+        const gltfLoader = new GLTFLoader();
+        gltfLoader.load("./trees/pine_tree.glb", (gltf) => {
+          pineTreeModel = gltf.scene;
+          pineTreeModel.scale.set(0.0013, 0.0013, 0.0013);
+          pineTreeModelLoaded = true;
+          checkAndPlaceTrees();
+        });
+      }
+
+      function loadTallPine() {
+        const gltfLoader = new GLTFLoader();
+        gltfLoader.load("./trees/tall_pine.glb", (gltf) => {
+          tallPineModel = gltf.scene;
+          tallPineModel.scale.set(0.01, 0.01, 0.01);
+          tallPineModelLoaded = true;
+          checkAndPlaceTrees();
+        });
+      }
+
+      function checkAndPlaceTrees() {
+        if (treeModelLoaded && pineTreeModelLoaded && tallPineModelLoaded) {
+          placeTrees();
+        }
       }
 
       function placeTrees() {
@@ -153,42 +201,71 @@
       }
 
       function addTree() {
-        if (!treeModel) return;
+        if (!treeModel || !pineTreeModel || !tallPineModel) return;
 
         let position;
         do {
           position = randomLatLonToXYZ();
-        } while (isPositionTooClose(position, 0.05) || isPositionNearRoad(position));
+        } while (!isPositionValid(position, TREE_RADIUS));
 
-        const tree = treeModel.clone();
+        const trees = [treeModel, pineTreeModel, tallPineModel];
+        const chosenTree = trees[Math.floor(Math.random() * trees.length)].clone();
+
         const normal = position.clone().normalize();
         const adjustedPosition = position.addScaledVector(normal, 0.01);
 
-        tree.position.copy(adjustedPosition);
-        alignObjectToNormal(tree, normal);
-        sphere.add(tree); // Attach tree to sphere
-        placedPositions.push(position);
+        chosenTree.position.copy(adjustedPosition);
+        alignObjectToNormal(chosenTree, normal);
+        sphere.add(chosenTree);
+
+        // Store the placed object with its hitbox radius
+        placedPositions.push({ position: adjustedPosition.clone(), radius: TREE_RADIUS });
       }
 
       function loadBuildings() {
         const mtlLoader = new MTLLoader();
         const objLoader = new OBJLoader();
-        const buildingMtl = './buildings/build1.mtl';
-        const buildingObj = './buildings/build1.obj';
 
-        mtlLoader.load(buildingMtl, (materials) => {
+        // Load the low-rise building
+        mtlLoader.load("./buildings/build1.mtl", (materials) => {
           materials.preload();
           objLoader.setMaterials(materials);
-          objLoader.load(buildingObj, (object) => {
+          objLoader.load("./buildings/build1.obj", (object) => {
             buildingModel = object;
             buildingModel.traverse((child) => {
               if (child.isMesh) {
                 child.scale.set(0.0015, 0.0015, 0.0015);
               }
             });
-            placeBuildings();
+            buildingModelLoaded = true;
+            checkAndPlaceBuildings();
           });
         });
+
+        // Load the high-rise building
+        const gltfLoader = new GLTFLoader();
+        gltfLoader.load("./buildings/high_rise_building.glb", (gltf) => {
+          highRiseModel = gltf.scene;
+          highRiseModel.scale.set(0.015, 0.015, 0.015);
+          highRiseModelLoaded = true;
+          checkAndPlaceBuildings();
+        });
+      }
+
+      function loadGlassSkyscraper() {
+        const gltfLoader = new GLTFLoader();
+        gltfLoader.load("./buildings/glass_skyscraper.glb", (gltf) => {
+          glassSkyscraperModel = gltf.scene;
+          glassSkyscraperModel.scale.set(0.00015, 0.00015, 0.00015);
+          glassSkyscraperModelLoaded = true;
+          checkAndPlaceBuildings();
+        });
+      }
+
+      function checkAndPlaceBuildings() {
+        if (buildingModelLoaded && highRiseModelLoaded && glassSkyscraperModelLoaded) {
+          placeBuildings();
+        }
       }
 
       function placeBuildings() {
@@ -198,30 +275,42 @@
       }
 
       function addBuilding() {
-        if (!buildingModel) return;
+        if (!buildingModel || !highRiseModel || !glassSkyscraperModel) return;
 
         let position;
         do {
           position = randomLatLonToXYZ();
-        } while (isPositionTooClose(position, 0.1) || isPositionNearRoad(position));
+        } while (!isPositionValid(position, BUILDING_RADIUS));
 
-        const building = buildingModel.clone();
+        const buildings = [buildingModel, highRiseModel, glassSkyscraperModel];
+        const chosenBuilding = buildings[Math.floor(Math.random() * buildings.length)].clone();
+
         const normal = position.clone().normalize();
         const adjustedPosition = position.addScaledVector(normal, 0.01);
 
-        building.position.copy(adjustedPosition);
-        alignObjectToNormal(building, normal);
-        sphere.add(building); // Attach building to sphere
-        placedPositions.push(position);
+        chosenBuilding.position.copy(adjustedPosition);
+        alignObjectToNormal(chosenBuilding, normal);
+        sphere.add(chosenBuilding);
+
+        // Store the placed object with its hitbox radius
+        placedPositions.push({ position: adjustedPosition.clone(), radius: BUILDING_RADIUS });
       }
 
-      function isPositionTooClose(position, minDistance) {
-        return placedPositions.some((placedPosition) => position.distanceTo(placedPosition) < minDistance);
+      // Check if position is valid (no overlap and not near road)
+      function isPositionValid(position, radius) {
+        return !isPositionTooClose(position, radius) && !isPositionNearRoad(position);
+      }
+
+      function isPositionTooClose(position, radius) {
+        return placedPositions.some((placed) => {
+          const distance = placed.position.distanceTo(position);
+          return distance < (placed.radius + radius);
+        });
       }
 
       function isPositionNearRoad(position) {
-        const equatorialPlane = new THREE.Vector3(0, 1, 0); // Equatorial road (Y-axis)
-        const meridianPlane = new THREE.Vector3(1, 0, 0); // Meridian road (X-axis)
+        const equatorialPlane = new THREE.Vector3(0, 1, 0);
+        const meridianPlane = new THREE.Vector3(1, 0, 0);
 
         const equatorialDistance = Math.abs(position.dot(equatorialPlane));
         const meridianDistance = Math.abs(position.dot(meridianPlane));
@@ -234,7 +323,7 @@
         do {
           lat = THREE.MathUtils.randFloat(-90, 90);
           lon = THREE.MathUtils.randFloat(-180, 180);
-        } while ((Math.abs(lat) < 10) || (Math.abs(lon) < 10));
+        } while (Math.abs(lat) < 10 || Math.abs(lon) < 10);
         return latLonToXYZ(lat, lon, EARTH_RADIUS);
       }
 
@@ -265,13 +354,13 @@
         if (car2) {
           const time = clock.getElapsedTime();
           const speed = 0.5;
-          const radius = 1.005; // Road radius
+          const radius = 1.005;
 
           const angle = time * speed;
           const position = new THREE.Vector3(
-            0, // X remains constant for meridian rotation
-            radius * Math.cos(angle), // Y changes
-            radius * Math.sin(angle)  // Z changes
+            0,
+            radius * Math.cos(angle),
+            radius * Math.sin(angle)
           );
 
           car2.position.copy(position);
@@ -280,7 +369,7 @@
           car2.quaternion.copy(quaternion);
         }
 
-        sphere.rotation.y += EARTH_ROTATION_SPEED; // Rotate the Earth
+        sphere.rotation.y += EARTH_ROTATION_SPEED;
 
         controls.update();
         renderer.render(scene, camera);

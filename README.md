@@ -10,8 +10,20 @@ Car Model from:
 https://sketchfab.com/3d-models/old-rusty-car-95baa20ebc5d4d2e869f0b549be838fe
 
 
-skyscraper model:
+skyscraper (tall) model:
 https://www.cgtrader.com/items/4230189/download-page (I used the blend file)
+
+skyscraper(wide) model:
+https://sketchfab.com/3d-models/high-rise-building-ae6ce5444bc3478a89a72416a5ebc03b
+
+glassy skyscraper model:
+https://sketchfab.com/3d-models/skyscraper-c04fafec4b034107a74035cf4f344d14#download
 
 tree model:
 https://www.cgtrader.com/items/2654599/download-pag
+
+short pine tree:
+https://sketchfab.com/3d-models/pine-tree-e52769d653cd4e52a4acff3041961e65
+
+tall pine tree:
+https://sketchfab.com/3d-models/pine-tree-e5479b9dab0b4346be51f789427f16b2#download
